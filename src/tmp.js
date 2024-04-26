@@ -1,39 +1,73 @@
+import './App.css';
+
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
-const API_KEY = 'YOUR_API_KEY'; // הוסף את המפתח האישי שלך כאן
-
 function App() {
-  const [data, setData] = useState(null);
+    const [universities, setUniversities] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const pageSize = 25; // גודל עמוד, ניתן לשנות לפי הצורך
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const response = await axios.get('https://www.balldontlie.io/api/v1/players', {
-          headers: {
-            Authorization: `Bearer ${"afe25e37-3a9d-4920-a7fe-3aa9148367af"}`
-          }
-        });
-        setData(response.data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-      }
+    useEffect(() => {
+        axios.get('http://universities.hipolabs.com/search?country=india')
+            .then(response => {
+                const data = response.data;
+                if (data && Array.isArray(data)) {
+                    setUniversities(data);
+                } else {
+                    console.error('Unexpected data format:', data);
+                }
+            })
+            .catch(error => console.error('Error fetching data:', error));
+    }, []);
+
+    // חישוב הנתונים להצגה בעמוד הנוכחי
+    const indexOfLastItem = currentPage * pageSize;
+    const indexOfFirstItem = indexOfLastItem - pageSize;
+    const currentData = universities.slice(indexOfFirstItem, indexOfLastItem);
+
+    // פונקציות לעדכון העמוד הנוכחי
+    const nextPage = () => {
+        if (currentPage * pageSize < universities.length) {
+            setCurrentPage(currentPage + 1);
+        }
     };
-    fetchData();
-  }, []);
 
-  return (
-    <div>
-      <h1>Players Data</h1>
-      {data && (
-        <ul>
-          {data.data.map(player => (
-            <li key={player.id}>{player.first_name} {player.last_name}</li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
+    const prevPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1);
+        }
+    };
+
+    return (
+        <div>
+            <h1>25 אוניברסיטאות בהודו</h1>
+            <table>
+                <thead>
+                    <tr>
+                        <th>שם</th>
+                        <th>מדינה</th>
+                        <th>אתר אינטרנט</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {currentData.map((university, index) => (
+                        <tr key={index}>
+                            <td>{university.name}</td>
+                            <td>{university.country}</td>
+                            <td><a href={university.web_pages}>{university.web_pages}</a></td>
+                        </tr>
+                    ))}
+                </tbody>
+            </table>
+
+            {/* כפתורי ניווט */}
+            <div>
+                <button onClick={prevPage} disabled={currentPage === 1}>הקודם</button>
+                <button onClick={nextPage} disabled={currentPage * pageSize >= universities.length}>הבא</button>
+            </div>
+        </div>
+    );
 }
 
 export default App;
